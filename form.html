@@ -91,6 +91,11 @@
       }
       .steps {
         padding-left: 10px;
+        position: sticky;
+        top: 24px;
+        align-self: start;
+        height: fit-content;
+        z-index: 2;
       }
       .step {
         position: relative;
@@ -415,6 +420,9 @@
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 5px;
+          position: static;
+          top: auto;
+          height: auto;
         }
         .step small {
           display: none;
