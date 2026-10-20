@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FCT Order Queue Prototype</title>
+<style>
+  :root{
+    --nav:#064474;
+    --nav-dark:#071332;
+    --blue:#0378c6;
+    --line:#c9d1da;
+    --head:#c7d0dc;
+    --text:#18212b;
+    --muted:#66717c;
+    --danger:#e51d24;
+    --bg:#fff;
+    --banner:#FDE047;
+    --banner-text:#2f2f2f;
+    --warning:#F97316;
+    --banner-slide:#F97316;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#fff;color:var(--text);font-family:"Segoe UI",Arial,sans-serif;font-size:14px}
+  body{min-width:1180px}
+  .topbar{height:51px;background:var(--nav);display:flex;align-items:center;padding:0 78px;color:white;position:sticky;top:0;z-index:1001}
+  .scope-banner{height:34px;background:var(--banner);color:var(--banner-text);display:flex;align-items:center;padding:0 78px;font-size:12px;font-weight:500;position:sticky;top:51px;z-index:1000;border-bottom:0;cursor:pointer;user-select:none}
+  .scope-banner:hover{background:var(--banner)}
+  .scope-banner:focus-visible{outline:2px solid #071332;outline-offset:-2px}
+  .scope-banner .caution-icon{width:19px;height:19px;display:inline-flex;align-items:center;justify-content:center;margin-right:9px;flex:0 0 19px;color:var(--warning);animation:cautionFlash 2.4s ease-in-out infinite}
+  @keyframes cautionFlash{0%,100%{opacity:1;filter:drop-shadow(0 0 3px rgba(249,115,22,.55))}50%{opacity:.18;filter:none}}
+  .scope-banner .caution-icon svg{display:block;width:19px;height:19px;overflow:visible}
+  .scope-banner .scope-link{text-decoration:underline;text-underline-offset:2px}
+  .brand{display:flex;align-items:center;gap:6px;margin-right:28px;min-width:90px}
+  .brand .leaf{font-size:29px;line-height:1;transform:rotate(-7deg);filter:grayscale(1) brightness(10)}
+  .brand .word{font-family:Georgia,serif;font-style:italic;font-size:27px;letter-spacing:-1px}
+  .nav{display:flex;height:100%;align-items:center;gap:18px;font-size:12px}
+  .nav a{color:#fff;text-decoration:none;opacity:.95;position:relative;height:100%;display:flex;align-items:center;padding:0 0 1px}
+  .nav a.active:after{content:"";position:absolute;left:0;right:0;bottom:10px;height:1px;background:#fff}
+  .spacer{flex:1}
+  .user{font-size:12px;white-space:nowrap;margin-right:16px}
+  .user .chev{display:inline-block;border:4px solid transparent;border-top-color:#fff;transform:translateY(3px);margin-left:4px}
+  .lang{border:0;background:#f3f5f8;border-radius:18px;padding:3px 16px;color:#052b56;font-weight:600;font-size:12px}
+
+  .filters{padding:22px 14px 10px;display:grid;grid-template-columns:195px 145px 265px 265px 265px 128px 128px 90px 90px;column-gap:14px;align-items:end;border-bottom:1px solid #e6e6e6}
+  .tab{height:36px;display:flex;align-items:center;justify-content:center;color:#1b1b1b;font-size:13px;position:relative;cursor:pointer}
+  .tab.active{color:#0073c6;font-weight:600}
+  .tab.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:#0073c6}
+  .field{position:relative;height:48px;padding-top:14px}
+  .field label{position:absolute;top:0;left:0;font-size:10px;color:#525c68;letter-spacing:.1px}
+  .field label .req{color:#e21d2b}
+  .field input,.field select{width:100%;height:32px;border:0;border-bottom:1px solid #8f979e;background:transparent;padding:3px 30px 5px 0;color:#333;font-size:12px;outline:none}
+  .field.search input{padding-left:0;color:#777}
+  .field .arrow{position:absolute;right:0;bottom:11px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid #7d8388}
+  .date-wrap{display:flex;align-items:center;gap:6px;height:32px;border-bottom:1px solid #8f979e}
+  .date-wrap input{border:0!important;padding:0!important;height:auto!important}
+  .cal{width:18px;height:18px;position:relative;flex:0 0 18px}
+  .cal:before{content:"";position:absolute;left:2px;right:2px;top:3px;bottom:1px;border:2px solid #373b40;border-radius:1px}
+  .cal:after{content:"";position:absolute;left:4px;right:4px;top:7px;border-top:2px solid #373b40}
+  .cal i,.cal b{position:absolute;top:0;width:2px;height:5px;background:#373b40}.cal i{left:5px}.cal b{right:5px}
+  .btn{height:33px;border-radius:3px;font-size:12px;cursor:pointer}
+  .btn.search{background:#071332;color:#fff;border:1px solid #071332}
+  .btn.clear{background:white;color:#071332;border:1px solid #071332}
+
+  .content{padding:19px 14px 0}
+  .table-wrap{border:1px solid #d3d9df;background:#fff}
+  table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:12px}
+  thead th{background:var(--head);height:50px;text-align:left;padding:0 10px;font-weight:600;color:#16202a;border-right:1px solid #c3cbd5}
+  thead th:last-child{border-right:0}
+  tbody td{height:47px;padding:6px 10px;border-right:1px solid #c7cfd8;border-bottom:1px solid #d7dde3;vertical-align:middle;color:#444;overflow:hidden;text-overflow:ellipsis}
+  tbody tr:nth-child(even){background:#fbfcfd}
+  tbody td:last-child{border-right:0}
+  .actioncell{text-align:left}
+  .alert{width:22px;height:22px;border-radius:50%;background:#e31820;color:white;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .note-icon{display:inline-flex;width:17px;height:17px;border-radius:50%;border:1px solid #6c8294;align-items:center;justify-content:center;color:#2f6187;background:#edf4f8;font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:11px}
+  a.ref{color:#0073c6;text-decoration:none}
+  .danger{color:#e31c28;font-weight:500}
+  .status{line-height:17px}
+  .address{white-space:nowrap}
+  .footer{height:63px;display:flex;align-items:center;gap:24px;padding:0}
+  .pagebox{margin-left:0;width:72px;height:28px;border:1px solid #333;border-radius:3px;display:flex;align-items:center;justify-content:space-evenly;font-size:11px}
+  .slash{color:#777}
+  .items-label{margin-left:82px;font-size:11px;font-weight:600;color:#4f5053}
+  .select-page{width:76px;height:37px;border:1px solid #aeb4ba;border-radius:4px;padding:0 10px;background:white;display:flex;align-items:center;justify-content:space-between;color:#666}
+  .select-page .tri{border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid #81868a}
+  .count{margin-left:8px;font-size:11px;font-weight:600}
+  .pager{display:flex;align-items:center;gap:28px;color:#e5e7e9;font-size:24px;margin-left:14px;user-select:none}
+  .pager span{font-family:Arial,sans-serif;line-height:1}
+
+  .chat{position:fixed;right:39px;bottom:23px;background:#071332;color:white;border-radius:5px;padding:12px 18px;font-size:13px;box-shadow:0 1px 2px rgba(0,0,0,.2);cursor:pointer}
+  .chat:after{content:"";display:inline-block;width:8px;height:8px;border-top:2px solid #fff;border-left:2px solid #fff;transform:rotate(45deg);margin-left:9px;margin-bottom:-2px}
+
+  .toast{position:fixed;right:28px;top:98px;background:#0a416e;color:#fff;padding:10px 14px;border-radius:4px;opacity:0;transform:translateY(-8px);transition:.2s;pointer-events:none;font-size:12px;z-index:2200}
+  .toast.show{opacity:1;transform:none}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(20,28,38,.25);display:none;align-items:flex-start;justify-content:center;padding-top:120px;z-index:2000}
+  .modal-backdrop.show{display:flex}
+  .scope-modal{width:min(690px,calc(100vw - 48px));min-height:620px;background:#fff;border:1px solid #e1e4e7;border-radius:9px;box-shadow:0 12px 30px rgba(0,0,0,.20);position:relative;padding:26px 34px 72px;color:#111827}
+  .scope-modal .modal-header{background:transparent;color:#111827;font-family:Arial,sans-serif;font-weight:700;font-size:25px;line-height:1.2;padding:0;margin:0 48px 28px 0}
+  .scope-modal .modal-x{position:absolute;right:25px;top:23px;width:26px;height:26px;border:0;background:transparent;cursor:pointer;padding:0}
+  .scope-modal .modal-x:before,.scope-modal .modal-x:after{content:"";position:absolute;left:12px;top:2px;width:2px;height:23px;background:#111827}
+  .scope-modal .modal-x:before{transform:rotate(45deg)}
+  .scope-modal .modal-x:after{transform:rotate(-45deg)}
+  .scope-modal ul{margin:0;padding:0 8px 0 31px;font-size:15px;line-height:1.38;color:#171717}
+  .scope-modal li{margin:4px 0;padding-left:4px}
+  .scope-modal .close{position:absolute;right:29px;bottom:21px;border:1px solid #1d3654;background:#fff;border-radius:4px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;color:#13233b}
+
+  @media(prefers-reduced-motion:reduce){.scope-banner .caution-icon{animation:none;filter:none}}
+
+  @media(max-width:1500px){
+    .topbar{padding-left:38px;padding-right:38px}
+    .scope-banner{padding-left:38px;padding-right:38px}
+    .filters{grid-template-columns:190px 145px 220px 220px 220px 125px 125px 90px 90px}
+  }
+  @media(max-width:900px){
+    .scope-modal{width:calc(100vw - 30px);min-height:0}
+    .scope-modal .modal-header{font-size:22px}
+    .scope-modal ul{font-size:13px}
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="leaf">🍁</span><span class="word">FCT.</span></div>
+    <nav class="nav">
+      <a href="#">New Order</a>
+      <a class="active" href="#" aria-current="page" onclick="event.preventDefault()">Order Queue</a>
+      <a href="#">My Profile</a>
+      <a href="#">Help</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="user">Welcome Rajiv Sharma<span class="chev"></span></div>
+    <button class="lang">Français</button>
+  </header>
+
+  <div class="scope-banner" id="scopeBanner" role="button" tabindex="0" aria-haspopup="dialog" aria-controls="scopeModal">
+    <span class="caution-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 22" role="presentation" focusable="false">
+        <path d="M12 1.8 22.4 20H1.6L12 1.8Z" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/>
+        <path d="M12 7.3v6.5" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>
+        <circle cx="12" cy="17.2" r="1.25" fill="currentColor"/>
+      </svg>
+    </span>
+    <span class="scope-link">Out of scope applications</span>
+  </div>
+
+  <section class="filters">
+    <div class="tab active" data-tab="inprogress">In-Progress</div>
+    <div class="tab" data-tab="completed">Completed</div>
+    <div class="field search"><input id="q" placeholder="Search" /></div>
+    <div class="field"><label>Branch</label><select id="branch"><option>12345-Deepak</option></select><span class="arrow"></span></div>
+    <div class="field"><label>Created by<span class="req">*</span></label><select id="created"><option>Sharma, Rajiv</option></select><span class="arrow"></span></div>
+    <div class="field"><div class="date-wrap"><input id="from" value="2026-05-22"><span class="cal"><i></i><b></b></span></div></div>
+    <div class="field"><div class="date-wrap"><input id="to" value="2026-08-20"><span class="cal"><i></i><b></b></span></div></div>
+    <button class="btn search" id="searchBtn">Search</button>
+    <button class="btn clear" id="clearBtn">Clear</button>
+  </section>
+
+  <main class="content">
+    <div class="table-wrap">
+      <table>
+        <colgroup>
+          <col style="width:73px"><col style="width:52px"><col style="width:146px"><col style="width:130px"><col style="width:110px"><col style="width:131px"><col style="width:136px"><col style="width:133px"><col style="width:96px"><col style="width:123px"><col>
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Action ...</th><th>Notes</th><th>Lender Reference #</th><th>FCT Reference #</th><th>Ordered Date</th><th>Product Type</th><th>Insurance Status</th><th>Status</th><th>Created By</th><th>Borrower Name</th><th>Property Address</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <tr data-text="2131234 26229000180 2026-08-17 NVIP Pending New Order HEB HEB 5543 CORTINA">
+            <td class="actioncell"><span class="alert">!</span></td><td><span class="note-icon">i</span></td><td>2131234</td><td><a class="ref" href="#">26229000180</a></td><td>2026-08-17</td><td>NVIP</td><td class="status">Pending<br><span class="danger">(File Not submitted)</span></td><td class="status">New Order<br><span class="danger">(File Not submitted)</span></td><td>Rajiv Sharma</td><td>HEB HEB</td><td class="address">5543 CORTINA Crescent, MISSISSAUGA, ON L4Z 3R1</td>
+          </tr>
+          <tr data-text="Full-1 26232000240 2026-08-20 Full Appraisal NA Unassigned HEB HEB 5543 Cortina">
+            <td></td><td><span class="note-icon">i</span></td><td>Full-1</td><td><a class="ref" href="#">26232000240</a></td><td>2026-08-20</td><td>Full Appraisal</td><td>NA</td><td>Unassigned</td><td>Rajiv Sharma</td><td>HEB HEB</td><td class="address">5543 Cortina Crescent, MISSISSAUGA, ON L4Z 3R1</td>
+          </tr>
+          <tr data-text="creditscore299 26231001359 2026-08-19 NVIP Flex Pending Received for Review Cathy Magoutis 5543 CORTINA">
+            <td></td><td><span class="note-icon">i</span></td><td>creditscore299</td><td><a class="ref" href="#">26231001359</a></td><td>2026-08-19</td><td>NVIP - Flex</td><td>Pending</td><td class="status">Received for<br>Review</td><td>Rajiv Sharma</td><td>Cathy Magoutis</td><td class="address">5543 CORTINA Crescent, MISSISSAUGA, ON L4Z 3R1</td>
+          </tr>
+          <tr data-text="creditscore300 26230000383 2026-08-18 NVIP Flex Pending Received for Review Cathy Mag 5543 CORTINA">
+            <td></td><td><span class="note-icon">i</span></td><td>creditscore300</td><td><a class="ref" href="#">26230000383</a></td><td>2026-08-18</td><td>NVIP - Flex</td><td>Pending</td><td class="status">Received for<br>Review</td><td>Rajiv Sharma</td><td>Cathy Mag</td><td class="address">5543 CORTINA Crescent, MISSISSAUGA, ON L4Z 3R1</td>
+          </tr>
+          <tr data-text="Lethbridge-2 26190001367 2026-07-09 NVIP Flex Pending Received for Review Swapan Julka 1324 7th Avenue North Lethbridge">
+            <td></td><td><span class="note-icon">i</span></td><td>Lethbridge-2</td><td><a class="ref" href="#">26190001367</a></td><td>2026-07-09</td><td>NVIP - Flex</td><td>Pending</td><td class="status">Received for<br>Review</td><td>Rajiv Sharma</td><td>Swapan Julka</td><td class="address">1324 7Th Avenue North, Lethbridge, AB T1H 0X9</td>
+          </tr>
+          <tr data-text="11111 26180000353 2026-06-29 NVIP Flex Pending Received for Review HEB HEB 15230 GUILDFORD">
+            <td></td><td><span class="note-icon">i</span></td><td>11111</td><td><a class="ref" href="#">26180000353</a></td><td>2026-06-29</td><td>NVIP - Flex</td><td>Pending</td><td class="status">Received for<br>Review</td><td>Rajiv Sharma</td><td>HEB HEB</td><td class="address">15230 GUILDFORD Drive, Unit 120, SURREY, BC X0X 0X0</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        <div class="pagebox"><span>1</span><span class="slash">/</span><span>1</span></div>
+        <span class="items-label">Items per page:</span>
+        <div class="select-page"><span>25</span><span class="tri"></span></div>
+        <span class="count" id="count">1 – 6 of 6</span>
+        <div class="pager"><span>‹|</span><span>‹</span><span>›</span><span>|›</span></div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="scopeModal" role="dialog" aria-modal="true" aria-labelledby="scopeModalTitle" aria-hidden="true">
+    <div class="scope-modal">
+      <div class="modal-header" id="scopeModalTitle">Out of Scope Applications</div>
+      <button class="modal-x" id="scopeX" aria-label="Close"></button>
+      <ul>
+        <li>High ratio insured deals (LTV over 80%)</li>
+        <li>Third position Mortgage / Heloc (Third Mortgage Value)</li>
+        <li>New construction</li>
+        <li>Property use - Agricultural, occupancy types (vacant, investment)</li>
+        <li>Property value is over $2,000,000 in any of these provinces: ON, BC, AB, MB, NB, NL, NS, NT, NU, PE, QC, SK, YT</li>
+        <li>Loan amount is over $1,450,000 in ON, BC, AB</li>
+        <li>Loan amount is over $800,000 in MB, NB, NL, NS, NT, NU, PE, QC, SK, YT</li>
+        <li>Property is non-owner occupied and non-rental</li>
+        <li>Property is non-owner occupied and the number of rental units is &gt; 2</li>
+        <li>Property is owner occupied and number of rental units is &gt; 1</li>
+        <li>Property is a leasehold</li>
+        <li>Purchase or refinance plus improvements</li>
+        <li>Progress advance purchase with improvements</li>
+        <li>Progress advance refinance with improvements</li>
+        <li>Mobile, modular, restricted properties</li>
+        <li>Owner occupied Duplex, Triplex, fourplex</li>
+        <li>Property is recreational with LTV less than or equal to 80%</li>
+        <li>Properties with a Blanket appraisal</li>
+        <li>Foreclosure, property sold as-is, and Power of sale</li>
+        <li>Property size below limit (Condo GTA/GVA: 400, Condo: 500, Townhouse/House: 850)</li>
+        <li>Property located in the regional exclusion zone (Flood/Fire areas)</li>
+        <li>Mortgage in a Company Name (MICN)</li>
+      </ul>
+      <button class="close" id="scopeClose">Close</button>
+    </div>
+  </div>
+
+  <button class="chat" id="chatBtn">Live Chat</button>
+  <div class="toast" id="toast"></div>
+
+<script>
+  const rows=[...document.querySelectorAll('#rows tr')];
+  const q=document.getElementById('q');
+  const count=document.getElementById('count');
+  const toast=document.getElementById('toast');
+  function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1500)}
+  function filterRows(){
+    const term=q.value.trim().toLowerCase(); let shown=0;
+    rows.forEach(r=>{const ok=!term||r.dataset.text.toLowerCase().includes(term);r.style.display=ok?'':'none';if(ok)shown++});
+    count.textContent=shown?`1 – ${shown} of ${shown}`:'0 of 0';
+  }
+  document.getElementById('searchBtn').onclick=()=>{filterRows();showToast('Search applied')};
+  document.getElementById('clearBtn').onclick=()=>{q.value='';filterRows();showToast('Filters cleared')};
+  document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+    if(t.dataset.tab==='completed'){rows.forEach(r=>r.style.display='none');count.textContent='0 of 0'} else filterRows();
+  });
+
+  const scopeBanner=document.getElementById('scopeBanner');
+  const scopeModal=document.getElementById('scopeModal');
+  const scopeClose=document.getElementById('scopeClose');
+  const scopeX=document.getElementById('scopeX');
+  function openScopeModal(){scopeModal.classList.add('show');scopeModal.setAttribute('aria-hidden','false');scopeX.focus()}
+  function closeScopeModal(){scopeModal.classList.remove('show');scopeModal.setAttribute('aria-hidden','true');scopeBanner.focus()}
+  scopeBanner.onclick=openScopeModal;
+  scopeBanner.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openScopeModal()}};
+  scopeClose.onclick=closeScopeModal;
+  scopeX.onclick=closeScopeModal;
+  scopeModal.onclick=e=>{if(e.target===scopeModal)closeScopeModal()};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&scopeModal.classList.contains('show'))closeScopeModal()});
+
+  document.getElementById('chatBtn').onclick=()=>showToast('Live Chat opened (prototype)');
+  document.querySelectorAll('a.ref').forEach(a=>a.onclick=e=>{e.preventDefault();showToast(`Open order ${a.textContent}`)});
+</script>
+</body>
+</html>
